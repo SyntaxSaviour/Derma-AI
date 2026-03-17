@@ -54,6 +54,12 @@ training/artefacts/
 *.pkl
 *.h5
 *.weights
+# Models — never commit
+backend/artefacts/
+artefacts/
+*.onnx
+*.pth
+*.pt
 
 # ── Datasets — never commit raw data ─────────────────────────────────────────
 training/data/raw/
@@ -144,3 +150,9 @@ infrastructure/monitoring/loki/data/
 .cache/
 tmp/
 temp/
+
+# Project specific
+copilotInstruction.md
+instruction.md
+derma-training/
+backend/src/api/v1/debug.py
