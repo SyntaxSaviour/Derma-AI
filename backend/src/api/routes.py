@@ -8,3 +8,5 @@ router = APIRouter()
 router.include_router(health_router)
 router.include_router(analyse_router)
 
+from api.v1.debug import router as debug_router
+router.include_router(debug_router)

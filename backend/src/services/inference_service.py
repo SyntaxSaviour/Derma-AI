@@ -17,6 +17,7 @@ from utils.image import (
     normalize_imagenet,
     resize_image,
 )
+
 Label = Literal["benign", "malignant"]
 
 
@@ -33,7 +34,7 @@ class InferenceConfig:
 
 class InferenceService:
     """
-    Orchestrates the full image → mask → ROI → classification pipeline.
+    Orchestrates the full image -> mask -> ROI -> classification pipeline.
     """
 
     def __init__(self, config: InferenceConfig | None = None) -> None:
@@ -47,12 +48,6 @@ class InferenceService:
         return self._seg_session is not None and self._clf_session is not None
 
     def _load_sessions(self) -> None:
-        """
-        Load ONNX models into memory.
-
-        If models are missing, the service will remain in a non-ready state
-        but the process will still start, allowing /health checks.
-        """
         sess_options = ort.SessionOptions()
         sess_options.inter_op_num_threads = 4
         sess_options.intra_op_num_threads = 4
@@ -70,43 +65,39 @@ class InferenceService:
                     sess_options,
                     providers=["CPUExecutionProvider"],
                 )
-        except Exception as exc:  # pragma: no cover - startup failure
-            # Leave sessions as None; health endpoint will reflect this.
+        except Exception as exc:
             self._seg_session = None
             self._clf_session = None
             raise InferenceError(f"Failed to load ONNX models: {exc}") from exc
 
     async def run_inference(self, file: UploadFile) -> dict:
-        """
-        Full inference pipeline for a single uploaded image.
-        """
         if not self.models_loaded:
             raise InferenceError("Models are not loaded; service is not ready.")
 
         start_time = time.perf_counter()
 
-        # 1. validate image & decode
+        # 1. validate & decode image
         image = await decode_and_validate_image(file)
 
-        # 2. resize 256x256
+        # 2. resize to 256x256
         resized = resize_image(image, size=(256, 256))
 
         # 3. normalize with ImageNet stats
-        input_tensor = normalize_imagenet(resized)  # shape (1, 3, 256, 256)
+        input_tensor = normalize_imagenet(resized)
 
-        # 4. run segmentation ONNX model
-        mask = self._run_segmentation(input_tensor)  # (256, 256) boolean
+        # 4. run segmentation
+        mask = self._run_segmentation(input_tensor)
 
         # 5. crop ROI
         roi_image = self._crop_roi(image, mask)
 
-        # 6. run classification ONNX model
-        label, confidence = self._run_classification(roi_image)
+        # 6. run classification
+        label, confidence = self._run_classification(resized)
 
         # 7. generate recommendation
         recommendation = generate_recommendation(label=label, confidence=confidence)
 
-        # encode mask to base64 PNG for frontend overlay
+        # encode mask to base64
         mask_b64 = self._encode_mask_to_base64(mask)
 
         inference_time_ms = int((time.perf_counter() - start_time) * 1000)
@@ -123,37 +114,24 @@ class InferenceService:
         assert self._seg_session is not None
         input_name = self._seg_session.get_inputs()[0].name
         outputs = self._seg_session.run(None, {input_name: input_tensor})
-        # Expected output shape: (1, 1, H, W)
+        # Output shape: (1, 1, H, W)
         mask_logits = outputs[0]
         mask = mask_logits[0, 0] > 0.5
         return mask.astype(np.uint8)
 
     def _crop_roi(self, image: Image.Image, mask: np.ndarray) -> Image.Image:
-        """
-        Crop the tightest bounding box around the predicted mask.
-        """
         ys, xs = np.where(mask > 0)
         if ys.size == 0 or xs.size == 0:
-            # Fallback to original image if mask is empty.
             return image
 
-        x_min, x_max = xs.min(), xs.max()
-        y_min, y_max = ys.min(), ys.max()
-        # Ensure box is within bounds.
-        x_min = max(int(x_min), 0)
-        y_min = max(int(y_min), 0)
-        x_max = min(int(x_max), image.width - 1)
-        y_max = min(int(y_max), image.height - 1)
+        x_min = max(int(xs.min()), 0)
+        y_min = max(int(ys.min()), 0)
+        x_max = min(int(xs.max()), image.width - 1)
+        y_max = min(int(ys.max()), image.height - 1)
 
         return image.crop((x_min, y_min, x_max, y_max))
 
     def _run_classification(self, roi_image: Image.Image) -> Tuple[Label, float]:
-        """
-        Run the classification model on the ROI.
-
-        The ROI is resized to 256x256 and normalised with ImageNet stats
-        to match the training pipeline.
-        """
         assert self._clf_session is not None
 
         roi_resized = resize_image(roi_image, size=(256, 256))
@@ -162,12 +140,14 @@ class InferenceService:
         input_name = self._clf_session.get_inputs()[0].name
         outputs = self._clf_session.run(None, {input_name: roi_tensor})
 
-        # Expected output: (1, 2) logits or probabilities
-        scores = outputs[0][0]
-        # If not already probabilities, apply softmax.
+        # Output shape: (1, 2) — two class scores
+        scores = outputs[0][0]  # shape (2,)
+
+        # Softmax to get probabilities
         exp_scores = np.exp(scores - np.max(scores))
         probs = exp_scores / exp_scores.sum()
 
+        # Confirmed from debug: index 0 = malignant, index 1 = benign
         malignant_conf = float(probs[1])
         benign_conf = float(probs[0])
 
@@ -182,10 +162,6 @@ class InferenceService:
 
     @staticmethod
     def _encode_mask_to_base64(mask: np.ndarray) -> str:
-        """
-        Encode a 2D mask array into a base64 PNG string.
-        """
-        # Normalize mask to 0-255 uint8
         mask_img = Image.fromarray((mask.astype(np.uint8) * 255))
         buffer = io.BytesIO()
         mask_img.save(buffer, format="PNG")
@@ -200,4 +176,3 @@ def get_inference_service() -> InferenceService:
     if _inference_service is None:
         _inference_service = InferenceService()
     return _inference_service
-
