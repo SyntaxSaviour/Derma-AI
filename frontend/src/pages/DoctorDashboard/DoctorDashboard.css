@@ -1,0 +1,153 @@
+/* frontend/src/pages/DoctorDashboard/DoctorDashboard.css */
+
+/* ── Outer layout ─────────────────────────────────────────────────────────── */
+
+.doctor-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg);
+}
+
+.doctor-page__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Main content area ────────────────────────────────────────────────────── */
+
+.doctor-page__main {
+  flex: 1;
+  padding: var(--s5);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+/* ── Page header row ──────────────────────────────────────────────────────── */
+
+.doctor-page__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s4);
+}
+
+.doctor-page__header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.doctor-page__title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  color: var(--burg3);
+  line-height: 1.15;
+}
+
+.doctor-page__date {
+  font-size: 11px;
+  color: var(--muted2);
+  letter-spacing: 0.2px;
+}
+
+/* ── KPI row ──────────────────────────────────────────────────────────────── */
+
+.doctor-page__kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s3);
+}
+
+/* ── Main 2-col grid ──────────────────────────────────────────────────────── */
+
+.doctor-page__main-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--s3);
+  align-items: start;
+}
+
+.doctor-page__left-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.doctor-page__result-col {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--s5));
+}
+
+/* Active analysis row */
+.doctor-page__active-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-top: var(--s3);
+  padding: var(--s2) var(--s3);
+  background-color: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--r1);
+}
+
+.doctor-page__active-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--gold2);
+  flex-shrink: 0;
+  animation: active-pulse 1.8s ease-in-out infinite;
+}
+@keyframes active-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.doctor-page__active-name {
+  flex: 1;
+  font-size: 11px;
+  color: var(--slate2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doctor-page__active-size {
+  font-size: 10px;
+  color: var(--muted3);
+  flex-shrink: 0;
+}
+
+/* ── Bottom 3-col grid ────────────────────────────────────────────────────── */
+
+.doctor-page__bottom-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s3);
+  align-items: start;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .doctor-page__kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .doctor-page__main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .doctor-page__result-col {
+    position: static;
+  }
+
+  .doctor-page__bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}

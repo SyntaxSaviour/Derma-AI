@@ -1,0 +1,113 @@
+/* frontend/src/pages/UserResult/UserResult.css */
+
+.user-result {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg);
+}
+
+.user-result__main {
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--s6) var(--s5) var(--s8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+}
+
+/* ── Header section ──────────────────────────────────────────────────────── */
+
+.user-result__header-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.user-result__back {
+  font-size: 12px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  transition: color 0.15s;
+  width: fit-content;
+}
+.user-result__back:hover {
+  color: var(--burg);
+}
+
+.user-result__heading {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  color: var(--burg3);
+  line-height: 1.2;
+}
+
+.user-result__timestamp {
+  font-size: 11px;
+  color: var(--muted2);
+  letter-spacing: 0.2px;
+}
+
+/* ── Understanding card ──────────────────────────────────────────────────── */
+
+.user-result__card-heading {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--burg3);
+  margin-bottom: var(--s4);
+}
+
+.user-result__explanation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.user-result__explanation p {
+  font-size: 13px;
+  color: var(--slate2);
+  line-height: 1.7;
+}
+
+/* ── Next steps ──────────────────────────────────────────────────────────── */
+
+.user-result__steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  margin-bottom: var(--s5);
+}
+
+.user-result__step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+}
+
+.user-result__step-num {
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+  padding-top: 1px;
+  min-width: 24px;
+}
+
+.user-result__step-text {
+  font-size: 13px;
+  color: var(--slate2);
+  line-height: 1.6;
+}
+
+/* ── CTAs ────────────────────────────────────────────────────────────────── */
+
+.user-result__ctas {
+  display: flex;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}

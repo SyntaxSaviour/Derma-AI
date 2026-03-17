@@ -1,0 +1,166 @@
+/* frontend/src/pages/UserHome/UserHome.css */
+
+.user-home {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg);
+}
+
+.user-home__main {
+  max-width: 680px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--s7) var(--s5) var(--s8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+
+.user-home__hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  text-align: center;
+  align-items: center;
+}
+
+.user-home__micro-tag {
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  display: inline-block;
+}
+
+.user-home__heading {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  color: var(--burg3);
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+}
+
+.user-home__subheading {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.65;
+  max-width: 520px;
+}
+
+.user-home__disclaimer {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--muted2);
+  line-height: 1.5;
+}
+
+/* ── Upload card ─────────────────────────────────────────────────────────── */
+
+.user-home__card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--burg3);
+  margin-bottom: var(--s3);
+}
+
+.user-home__analyse-wrap {
+  margin-top: var(--s4);
+}
+
+/* ── How It Works ────────────────────────────────────────────────────────── */
+
+.user-home__section-title {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  color: var(--burg3);
+  margin-bottom: var(--s4);
+  text-align: center;
+}
+
+.user-home__steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s3);
+}
+
+.user-home__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--s2);
+  padding: var(--s2) 0;
+}
+
+.user-home__step-num {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.user-home__step-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--bg2);
+  border: 1px solid var(--line2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--burg);
+  margin: var(--s1) 0;
+}
+
+.user-home__step-title {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--burg3);
+}
+
+.user-home__step-body {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── Trust Indicators ────────────────────────────────────────────────────── */
+
+.user-home__trust {
+  display: flex;
+  justify-content: center;
+  gap: var(--s7);
+  padding: var(--s5) 0;
+  border-top: 1px solid var(--line);
+}
+
+.user-home__trust-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.user-home__trust-value {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  color: var(--burg3);
+  line-height: 1;
+}
+
+.user-home__trust-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .user-home__steps {
+    grid-template-columns: 1fr;
+  }
+
+  .user-home__trust {
+    gap: var(--s5);
+  }
+}
