@@ -69,6 +69,7 @@ training/data/external/
 training/src/data/raw_isic/
 training/src/data/processed/
 training/src/data/splits/
+data/
 *.csv.gz
 *.zip
 *.tar
