@@ -25,7 +25,7 @@ def download_models() -> None:
         "segmentation.onnx",
         "segmentation.onnx.data",
         "classification.onnx",
-        "classification.onnx.data",
+        "classifier.onnx.data",
     ]
 
     print(f"[download_models] Downloading from {hf_repo_id} ...")
