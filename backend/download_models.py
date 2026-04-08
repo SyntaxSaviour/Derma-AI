@@ -11,10 +11,13 @@ def download_models() -> None:
         print("[download_models] HF_REPO_ID not set — skipping download.")
         return
 
-    seg_path = Path(os.getenv("SEGMENTATION_MODEL_PATH",   "artefacts/models/segmentation.onnx"))
-    clf_path = Path(os.getenv("CLASSIFICATION_MODEL_PATH", "artefacts/models/classification.onnx"))
+    # Use absolute path based on this script's location
+    script_dir = Path(__file__).parent.resolve()
+    models_dir = script_dir / "artefacts" / "models"
 
-    # If both files already exist, skip download
+    seg_path = models_dir / "segmentation.onnx"
+    clf_path = models_dir / "classification.onnx"
+
     if seg_path.exists() and clf_path.exists():
         print("[download_models] Models already present — skipping download.")
         return
@@ -25,7 +28,7 @@ def download_models() -> None:
         print("[download_models] huggingface_hub not installed — cannot download models.")
         sys.exit(1)
 
-    seg_path.parent.mkdir(parents=True, exist_ok=True)
+    models_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"[download_models] Downloading from {hf_repo_id} ...")
 
@@ -33,7 +36,7 @@ def download_models() -> None:
         hf_hub_download(
             repo_id=hf_repo_id,
             filename="segmentation.onnx",
-            local_dir=str(seg_path.parent),
+            local_dir=str(models_dir),
             token=hf_token,
         )
         print(f"[download_models] segmentation.onnx -> {seg_path}")
@@ -42,7 +45,7 @@ def download_models() -> None:
         hf_hub_download(
             repo_id=hf_repo_id,
             filename="classification.onnx",
-            local_dir=str(clf_path.parent),
+            local_dir=str(models_dir),
             token=hf_token,
         )
         print(f"[download_models] classification.onnx -> {clf_path}")
