@@ -11,8 +11,8 @@ def download_models() -> None:
         print("[download_models] HF_REPO_ID not set — skipping download.")
         return
 
-    script_dir = Path(__file__).parent.resolve()
-    models_dir = script_dir / "artefacts" / "models"
+    # Use absolute persistent path on Render
+    models_dir = Path("/opt/render/project/src/backend/artefacts/models")
     models_dir.mkdir(parents=True, exist_ok=True)
 
     try:
