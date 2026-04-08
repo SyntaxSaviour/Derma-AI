@@ -79,8 +79,8 @@ class InferenceService:
         # 1. validate & decode image
         image = await decode_and_validate_image(file)
 
-        # 2. resize to 256x256
-        resized = resize_image(image, size=(256, 256))
+        # 2. resize to 224x224
+        resized = resize_image(image, size=(224, 224))
 
         # 3. normalize with ImageNet stats
         input_tensor = normalize_imagenet(resized)
@@ -134,7 +134,7 @@ class InferenceService:
     def _run_classification(self, roi_image: Image.Image) -> Tuple[Label, float]:
         assert self._clf_session is not None
 
-        roi_resized = resize_image(roi_image, size=(256, 256))
+        roi_resized = resize_image(roi_image, size=(224, 224))
         roi_tensor = normalize_imagenet(roi_resized)
 
         input_name = self._clf_session.get_inputs()[0].name
