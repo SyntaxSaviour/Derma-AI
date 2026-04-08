@@ -5,7 +5,7 @@
 ---
 
 ![Home](images/home.png)
-![clinic](images/clinic.png)
+<!-- ![clinic](images/clinic.png) -->
 ![result](images/result.png)
 
 ## Overview
