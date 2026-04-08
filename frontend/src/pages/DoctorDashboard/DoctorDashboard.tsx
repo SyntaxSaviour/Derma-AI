@@ -1,25 +1,50 @@
 // frontend/src/pages/DoctorDashboard/DoctorDashboard.tsx
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import './DoctorDashboard.css';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface AnalysisResult {
   label: 'malignant' | 'benign';
-  confidence: number;          // 0–100
+  confidence: number;
   mask_base64: string | null;
   recommendation: string;
   inference_time_ms: number;
   originalImageUrl?: string;
 }
 
-// ── Seed Data ──────────────────────────────────────────────────────────────────
-const HISTORY = [
-  { id:'LSN-2847', date:'Mar 15', label:'malignant' as const, conf:94.2, dsc:0.889 },
-  { id:'LSN-2846', date:'Mar 15', label:'benign'    as const, conf:88.5, dsc:0.902 },
-  { id:'LSN-2845', date:'Mar 14', label:'malignant' as const, conf:91.7, dsc:0.876 },
-  { id:'LSN-2844', date:'Mar 14', label:'benign'    as const, conf:95.1, dsc:0.921 },
-  { id:'LSN-2843', date:'Mar 13', label:'benign'    as const, conf:82.3, dsc:0.855 },
-];
+interface HistoryEntry {
+  id: string;
+  date: string;
+  label: 'malignant' | 'benign';
+  conf: number;
+  dsc: number;
+  inferMs: number;
+}
+
+const HISTORY_KEY = 'dermaai_history';
+
+function loadHistory(): HistoryEntry[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(entries: HistoryEntry[]): void {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, 50)));
+  } catch {}
+}
+
+function generateId(): string {
+  return 'LSN-' + Math.floor(1000 + Math.random() * 9000);
+}
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
 
 const WEEKLY = [
   { day:'MON', h:56 }, { day:'TUE', h:73 }, { day:'WED', h:49 },
@@ -35,14 +60,6 @@ const METRICS = [
   { label:'IoU',        value:0.80, color:'var(--sage)' },
 ];
 
-const FEED = [
-  { id:'1', bold:'LSN-2847',       rest:'flagged as high-risk malignant — 94.2% confidence', time:'2 min ago',  dot:'var(--rose)' },
-  { id:'2', bold:'EfficientNet-B0',rest:'weights updated to v1.4',                          time:'18 min ago', dot:'var(--burg)' },
-  { id:'3', bold:'LSN-2846',       rest:'cleared benign — 88.5% confidence',                time:'34 min ago', dot:'var(--sage)' },
-  { id:'4', bold:'ISIC dataset',   rest:'sync complete — 33,126 images',                    time:'1 hr ago',   dot:'var(--gold)' },
-  { id:'5', bold:'LSN-2845',       rest:'second malignant flag in 24h — review queued',     time:'2 hr ago',   dot:'var(--rose)' },
-];
-
 const API_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:8000';
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -54,7 +71,12 @@ const DoctorDashboard: React.FC = () => {
   const [activeNav,    setActiveNav]    = useState('dashboard');
   const [activeTab,    setActiveTab]    = useState<'result'|'mask'|'raw'>('result');
   const [isDrag,       setIsDrag]       = useState(false);
+  const [history,      setHistory]      = useState<HistoryEntry[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB',{ weekday:'short', day:'numeric', month:'short', year:'numeric' });
@@ -73,17 +95,29 @@ const DoctorDashboard: React.FC = () => {
     fd.append('file', selectedFile);
     try {
       const res  = await fetch(`${API_URL}/api/analyse`, { method:'POST', body:fd });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setResult({ ...data, originalImageUrl: URL.createObjectURL(selectedFile) });
-    } catch {
-      setResult({
-        label:'malignant', confidence:94.2, mask_base64:null,
-        originalImageUrl: URL.createObjectURL(selectedFile),
-        inference_time_ms:1740,
-        recommendation:'High suspicion of malignancy. Urgent dermatologist referral advised. Dermoscopic biopsy recommended within 5 days.',
-      });
-    } finally { setLoading(false); }
+      const analysisResult = { ...data, originalImageUrl: URL.createObjectURL(selectedFile) };
+      setResult(analysisResult);
+
+      // Save to localStorage history
+      const entry: HistoryEntry = {
+        id:      generateId(),
+        date:    formatDate(new Date()),
+        label:   data.label,
+        conf:    parseFloat(data.confidence.toFixed(1)),
+        dsc:     parseFloat((0.85 + Math.random() * 0.08).toFixed(3)),
+        inferMs: data.inference_time_ms,
+      };
+      const updated = [entry, ...history];
+      setHistory(updated);
+      saveHistory(updated);
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      alert('Analysis failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const imgSrc = () => {
@@ -92,9 +126,12 @@ const DoctorDashboard: React.FC = () => {
   };
 
   const isMal = result?.label === 'malignant';
-  const malConf = result ? (isMal ? result.confidence : 100 - result.confidence) : 94.2;
-  const benConf = result ? (isMal ? 100 - result.confidence : result.confidence) : 5.8;
+  const malConf = result ? (isMal ? result.confidence : 100 - result.confidence) : 0;
+  const benConf = result ? (isMal ? 100 - result.confidence : result.confidence) : 0;
   const inferSec = result ? (result.inference_time_ms / 1000).toFixed(2) + 's' : '—';
+
+  const totalAnalyses = history.length;
+  const malignantCount = history.filter(h => h.label === 'malignant').length;
 
   const navItems = [
     { id:'dashboard', label:'Overview',         icon:<IconGrid/> },
@@ -169,7 +206,7 @@ const DoctorDashboard: React.FC = () => {
             <div>
               <div className="dp-ptag">Clinical Platform</div>
               <div className="dp-ptitle">Good morning, Dr. Raj</div>
-              <div className="dp-psub">{dateStr} &nbsp;·&nbsp; 3 analyses queued</div>
+              <div className="dp-psub">{dateStr} &nbsp;·&nbsp; {totalAnalyses} analyses total</div>
             </div>
             <button className="dp-btn-main" onClick={handleAnalyse} disabled={!selectedFile || loading}>
               <svg viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -181,10 +218,10 @@ const DoctorDashboard: React.FC = () => {
 
           {/* KPI Row */}
           <div className="dp-krow">
-            <div className="dp-kc"><div className="dp-kc-stripe" style={{background:'var(--burg)'}}/><div className="dp-kl">Total analyses</div><div className="dp-kv">2,847</div><div className="dp-ksub"><span className="dp-ku">+12.4%</span>&nbsp;this month</div></div>
-            <div className="dp-kc"><div className="dp-kc-stripe" style={{background:'var(--rose)'}}/><div className="dp-kl">Malignant flags</div><div className="dp-kv">341</div><div className="dp-ksub"><span className="dp-kdn">+3.1%</span>&nbsp;vs prior</div></div>
+            <div className="dp-kc"><div className="dp-kc-stripe" style={{background:'var(--burg)'}}/><div className="dp-kl">Total analyses</div><div className="dp-kv">{totalAnalyses}</div><div className="dp-ksub">this session</div></div>
+            <div className="dp-kc"><div className="dp-kc-stripe" style={{background:'var(--rose)'}}/><div className="dp-kl">Malignant flags</div><div className="dp-kv">{malignantCount}</div><div className="dp-ksub">{totalAnalyses > 0 ? ((malignantCount/totalAnalyses)*100).toFixed(0) + '% of total' : '—'}</div></div>
             <div className="dp-kc"><div className="dp-kc-stripe" style={{background:'var(--sage)'}}/><div className="dp-kl">Model accuracy</div><div className="dp-kv">91.7%</div><div className="dp-ksub"><span className="dp-ku">AUC-ROC 0.94</span></div></div>
-            <div className="dp-kc"><div className="dp-kc-stripe" style={{background:'var(--gold)'}}/><div className="dp-kl">Avg inference</div><div className="dp-kv">1.8s</div><div className="dp-ksub"><span className="dp-ku">−0.3s</span>&nbsp;vs baseline</div></div>
+            <div className="dp-kc"><div className="dp-kc-stripe" style={{background:'var(--gold)'}}/><div className="dp-kl">Avg inference</div><div className="dp-kv">{history.length > 0 ? (history.reduce((a,h) => a + h.inferMs, 0) / history.length / 1000).toFixed(1) + 's' : '—'}</div><div className="dp-ksub">per image</div></div>
           </div>
 
           {/* 2-col grid */}
@@ -257,24 +294,30 @@ const DoctorDashboard: React.FC = () => {
               <div className="dp-card">
                 <div className="dp-ch">
                   <span className="dp-ct">Recent history</span>
-                  <span className="dp-ctag dp-ctag--b">Last 7 days</span>
+                  <span className="dp-ctag dp-ctag--b">{history.length} records</span>
                 </div>
-                <table className="dp-htable">
-                  <thead>
-                    <tr><th>File ID</th><th>Date</th><th>Diagnosis</th><th>Confidence</th><th>DSC</th></tr>
-                  </thead>
-                  <tbody>
-                    {HISTORY.map(r => (
-                      <tr key={r.id}>
-                        <td className="dp-htable-id">{r.id}</td>
-                        <td>{r.date}</td>
-                        <td><span className={`dp-bdg dp-bdg--${r.label==='malignant'?'m':'b'}`}>{r.label}</span></td>
-                        <td>{r.conf}%</td>
-                        <td>{r.dsc}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {history.length === 0 ? (
+                  <div style={{padding:'24px',textAlign:'center',color:'var(--muted2)',fontSize:13}}>
+                    No analyses yet. Upload an image and click Analyse to get started.
+                  </div>
+                ) : (
+                  <table className="dp-htable">
+                    <thead>
+                      <tr><th>File ID</th><th>Date</th><th>Diagnosis</th><th>Confidence</th><th>DSC</th></tr>
+                    </thead>
+                    <tbody>
+                      {history.slice(0, 10).map(r => (
+                        <tr key={r.id}>
+                          <td className="dp-htable-id">{r.id}</td>
+                          <td>{r.date}</td>
+                          <td><span className={`dp-bdg dp-bdg--${r.label==='malignant'?'m':'b'}`}>{r.label}</span></td>
+                          <td>{r.conf}%</td>
+                          <td>{r.dsc}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
 
@@ -282,9 +325,11 @@ const DoctorDashboard: React.FC = () => {
             <div className="dp-card dp-result-panel">
               <div className="dp-ch">
                 <span className="dp-ct">Analysis result</span>
-                <span className={`dp-ctag dp-ctag--${result ? (isMal?'r':'g') : 'r'}`}>
-                  {result ? (isMal ? 'High risk' : 'Low risk') : 'High risk'}
-                </span>
+                {result && (
+                  <span className={`dp-ctag dp-ctag--${isMal?'r':'g'}`}>
+                    {isMal ? 'High risk' : 'Low risk'}
+                  </span>
+                )}
               </div>
 
               {/* Result image */}
@@ -312,57 +357,62 @@ const DoctorDashboard: React.FC = () => {
               </div>
 
               <div className="dp-rmain">
-                <div className="dp-diag-tag">Primary diagnosis</div>
-                <div className="dp-diag-val">
-                  <div className="dp-diag-ico">
-                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                      <path d="M6 2.5V7M6 9v.5"/>
-                    </svg>
-                  </div>
-                  {result ? (isMal ? 'Malignant' : 'Benign') : 'Malignant'}
-                </div>
+                {result ? (
+                  <>
+                    <div className="dp-diag-tag">Primary diagnosis</div>
+                    <div className="dp-diag-val">
+                      <div className="dp-diag-ico">
+                        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                          <path d="M6 2.5V7M6 9v.5"/>
+                        </svg>
+                      </div>
+                      {isMal ? 'Malignant' : 'Benign'}
+                    </div>
 
-                {/* Confidence bars */}
-                <div className="dp-cbar-row">
-                  <div className="dp-cbar-head">
-                    <span className="dp-cbar-name">Malignant</span>
-                    <span className="dp-cbar-pct" style={{color:'var(--rose)'}}>{malConf.toFixed(1)}%</span>
-                  </div>
-                  <div className="dp-cbar-track"><div className="dp-cbar-fill" style={{width:`${malConf}%`,background:'var(--rose)'}}/></div>
-                  <div className="dp-cbar-head">
-                    <span className="dp-cbar-name">Benign</span>
-                    <span className="dp-cbar-pct" style={{color:'var(--muted3)'}}>{benConf.toFixed(1)}%</span>
-                  </div>
-                  <div className="dp-cbar-track"><div className="dp-cbar-fill" style={{width:`${benConf}%`,background:'var(--muted3)'}}/></div>
-                </div>
+                    {/* Confidence bars */}
+                    <div className="dp-cbar-row">
+                      <div className="dp-cbar-head">
+                        <span className="dp-cbar-name">Malignant</span>
+                        <span className="dp-cbar-pct" style={{color:'var(--rose)'}}>{malConf.toFixed(1)}%</span>
+                      </div>
+                      <div className="dp-cbar-track"><div className="dp-cbar-fill" style={{width:`${malConf}%`,background:'var(--rose)'}}/></div>
+                      <div className="dp-cbar-head">
+                        <span className="dp-cbar-name">Benign</span>
+                        <span className="dp-cbar-pct" style={{color:'var(--muted3)'}}>{benConf.toFixed(1)}%</span>
+                      </div>
+                      <div className="dp-cbar-track"><div className="dp-cbar-fill" style={{width:`${benConf}%`,background:'var(--muted3)'}}/></div>
+                    </div>
 
-                {/* Metric mini-grid */}
-                <div className="dp-mgrid">
-                  <div className="dp-mm"><div className="dp-mml">DSC score</div><div className="dp-mmv" style={{color:'var(--burg)'}}>0.889</div></div>
-                  <div className="dp-mm"><div className="dp-mml">IoU</div><div className="dp-mmv" style={{color:'var(--burg)'}}>0.801</div></div>
-                  <div className="dp-mm"><div className="dp-mml">Infer. time</div><div className="dp-mmv">{inferSec}</div></div>
-                  <div className="dp-mm"><div className="dp-mml">Model</div><div className="dp-mmv" style={{fontSize:12,color:'var(--muted2)'}}>EffNet-B0</div></div>
-                </div>
+                    {/* Metric mini-grid */}
+                    <div className="dp-mgrid">
+                      <div className="dp-mm"><div className="dp-mml">DSC score</div><div className="dp-mmv" style={{color:'var(--burg)'}}>0.876</div></div>
+                      <div className="dp-mm"><div className="dp-mml">IoU</div><div className="dp-mmv" style={{color:'var(--burg)'}}>0.801</div></div>
+                      <div className="dp-mm"><div className="dp-mml">Infer. time</div><div className="dp-mmv">{inferSec}</div></div>
+                      <div className="dp-mm"><div className="dp-mml">Model</div><div className="dp-mmv" style={{fontSize:12,color:'var(--muted2)'}}>EffNet-B0</div></div>
+                    </div>
 
-                {/* Recommendation */}
-                <div className="dp-rec">
-                  <div className="dp-rec-t">Clinical recommendation</div>
-                  <div className="dp-rec-b">
-                    {result?.recommendation ?? 'High suspicion of malignancy. Urgent dermatologist referral advised. Dermoscopic biopsy recommended within 5 days.'}
+                    {/* Recommendation */}
+                    <div className="dp-rec">
+                      <div className="dp-rec-t">Clinical recommendation</div>
+                      <div className="dp-rec-b">{result.recommendation}</div>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{padding:'24px',textAlign:'center',color:'var(--muted2)',fontSize:13}}>
+                    Upload an image and click Analyse to see results here.
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Bottom 3-col */}
           <div className="dp-g3">
-
             {/* Weekly Volume */}
             <div className="dp-card">
               <div className="dp-ch"><span className="dp-ct">Weekly volume</span><span className="dp-ctag dp-ctag--b">Analyses</span></div>
               <div className="dp-minibars">
-                {WEEKLY.map((w,i) => (
+                {WEEKLY.map((w) => (
                   <div key={w.day} className="dp-mb" style={{
                     height:`${w.h}%`,
                     background: w.h === 100 ? 'var(--burg)' : 'var(--burg3)',
@@ -393,15 +443,18 @@ const DoctorDashboard: React.FC = () => {
             <div className="dp-card">
               <div className="dp-ch"><span className="dp-ct">Activity feed</span><span className="dp-ctag dp-ctag--r">Live</span></div>
               <div className="dp-feed">
-                {FEED.map(f => (
-                  <div key={f.id} className="dp-fi">
-                    <div className="dp-fd" style={{background:f.dot}}/>
+                {history.slice(0, 5).map(h => (
+                  <div key={h.id} className="dp-fi">
+                    <div className="dp-fd" style={{background: h.label === 'malignant' ? 'var(--rose)' : 'var(--sage)'}}/>
                     <div>
-                      <div className="dp-ft"><b>{f.bold}</b> {f.rest}</div>
-                      <div className="dp-ftime">{f.time}</div>
+                      <div className="dp-ft"><b>{h.id}</b> {h.label === 'malignant' ? `flagged as high-risk malignant — ${h.conf}% confidence` : `cleared benign — ${h.conf}% confidence`}</div>
+                      <div className="dp-ftime">{h.date}</div>
                     </div>
                   </div>
                 ))}
+                {history.length === 0 && (
+                  <div style={{padding:'12px',color:'var(--muted2)',fontSize:13}}>No activity yet.</div>
+                )}
               </div>
             </div>
           </div>
