@@ -4,7 +4,11 @@
 
 ---
 
-## 📖 Overview
+![Home](images/home.png)
+![clinic](images/clinic.png)
+![result](images/result.png)
+
+## Overview
 
 DermaAI is a deep learning-based web application that performs automated skin lesion **segmentation** and **classification** using dermoscopic images.
 
@@ -23,7 +27,7 @@ Users can upload an image and receive:
 
 ---
 
-## 🚀 Features
+## Features
 
 * 🧠 Two-stage AI pipeline (Segmentation + Classification)
 * 🖼️ Lesion segmentation using U-Net / ResUNet
@@ -36,7 +40,7 @@ Users can upload an image and receive:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 User Image → Preprocessing → Segmentation Model (U-Net)
@@ -46,7 +50,7 @@ User Image → Preprocessing → Segmentation Model (U-Net)
 
 ---
 
-## ⚙️ Tech Stack
+## Tech Stack
 
 **Frontend:**
 
@@ -73,7 +77,7 @@ User Image → Preprocessing → Segmentation Model (U-Net)
 
 ---
 
-## 🧠 Model Details
+##  Model Details
 
 | Component      | Model Used                      |
 | -------------- | ------------------------------- |
@@ -84,7 +88,7 @@ User Image → Preprocessing → Segmentation Model (U-Net)
 
 ---
 
-## 📊 Performance Metrics
+## Performance Metrics
 
 * Dice Score: **≥ 0.85**
 * IoU: **≥ 0.78**
@@ -93,7 +97,7 @@ User Image → Preprocessing → Segmentation Model (U-Net)
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 DermaAI/
@@ -108,7 +112,7 @@ DermaAI/
 
 ---
 
-## ▶️ How to Run
+## ▶ How to Run
 
 ### 1. Clone the Repository
 
@@ -135,7 +139,7 @@ npm start
 
 ---
 
-## 🧪 Use Cases
+## Use Cases
 
 * 👨‍⚕️ Dermatologists – AI-assisted triage tool
 * 🎓 Students – Learning medical AI systems
@@ -143,14 +147,14 @@ npm start
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 > This project is a **research prototype** and not a certified medical device.
 > Predictions are advisory only and should not replace professional medical diagnosis.
 
 ---
 
-## 🔮 Future Improvements
+## Future Improvements
 
 * Multi-class classification (beyond benign/malignant)
 * Transformer-based models (SegFormer, Swin-UNet)
@@ -160,7 +164,7 @@ npm start
 
 ---
 
-## 🙌 Credits
+## Credits
 
 * ISIC (International Skin Imaging Collaboration) Dataset
 * PyTorch
