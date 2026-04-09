@@ -140,23 +140,22 @@ class InferenceService:
         input_name = self._clf_session.get_inputs()[0].name
         outputs = self._clf_session.run(None, {input_name: roi_tensor})
 
-        scores = outputs[0]
-
-        # Flatten to handle any output shape
-        scores = scores.flatten()
+        scores = outputs[0].flatten()
 
         if scores.shape[0] == 1:
-            # Single output — sigmoid probability of malignant
-            malignant_prob = float(scores[0])
+            # Single logit — apply sigmoid to get malignant probability
+            logit = float(scores[0])
+            malignant_prob = 1.0 / (1.0 + np.exp(-logit))
             benign_prob = 1.0 - malignant_prob
         elif scores.shape[0] == 2:
-            # Two outputs — softmax over [benign, malignant]
+            # Two values — apply softmax
             exp_scores = np.exp(scores - np.max(scores))
             probs = exp_scores / exp_scores.sum()
             benign_prob = float(probs[0])
             malignant_prob = float(probs[1])
         else:
-            malignant_prob = float(scores[0])
+            logit = float(scores[0])
+            malignant_prob = 1.0 / (1.0 + np.exp(-logit))
             benign_prob = 1.0 - malignant_prob
 
         if malignant_prob >= benign_prob:
@@ -167,7 +166,6 @@ class InferenceService:
             confidence = benign_prob
 
         return label, round(confidence * 100.0, 2)
-
         
     @staticmethod
     def _encode_mask_to_base64(mask: np.ndarray) -> str:
